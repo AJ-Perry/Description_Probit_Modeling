@@ -1,0 +1,1150 @@
+#=======================================================================
+
+# Rattle is Copyright (c) 2006-2018 Togaware Pty Ltd.
+# It is free (as in libre) open source software.
+# It is licensed under the GNU General Public License,
+# Version 2. Rattle comes with ABSOLUTELY NO WARRANTY.
+# Rattle was written by Graham Williams with contributions
+# from others as acknowledged in 'library(help=rattle)'.
+# Visit https://rattle.togaware.com/ for details.
+
+#=======================================================================
+# Rattle timestamp: 2022-10-29 21:38:14 x86_64-w64-mingw32 
+
+# Rattle version 5.2.0 user 'mathe'
+
+# This log captures interactions with Rattle as an R script. 
+
+# For repeatability, export this activity log to a 
+# file, like 'model.R' using the Export button or 
+# through the Tools menu. Th script can then serve as a 
+# starting point for developing your own scripts. 
+# After xporting to a file called 'model.R', for exmample, 
+# you can type into a new R Console the command 
+# "source('model.R')" and so repeat all actions. Generally, 
+# you will want to edit the file to suit your own needs. 
+# You can also edit this log in place to record additional 
+# information before exporting the script. 
+ 
+# Note that saving/loading projects retains this log.
+
+# We begin most scripts by loading the required packages.
+# Here are some initial packages to load and others will be
+# identified as we proceed through the script. When writing
+# our own scripts we often collect together the library
+# commands at the beginning of the script here.
+
+library(rattle)   # Access the weather dataset and utilities.
+library(magrittr) # Utilise %>% and %<>% pipeline operators.
+
+# This log generally records the process of building a model. 
+# However, with very little effort the log can also be used 
+# to score a new dataset. The logical variable 'building' 
+# is used to toggle between generating transformations, 
+# when building a model and using the transformations, 
+# when scoring a dataset.
+
+building <- TRUE
+scoring  <- ! building
+
+# A pre-defined value is used to reset the random seed 
+# so that results are repeatable.
+
+crv$seed <- 42 
+
+# Load an additional library.
+
+library(dplyrXdf) # Support dplyr with XDF datasets.
+
+#=======================================================================
+# Rattle timestamp: 2022-10-29 21:38:38 x86_64-w64-mingw32 
+
+# Load a dataset from file.
+
+fname         <- "file:///C:/Users/mathe/OneDrive/Research_Manuscripts_Pubs/NATICUSdroid_android_permissions.csv" 
+crs$dataset <- read.csv(fname,
+			na.strings=c(".", "NA", "", "?"),
+			strip.white=TRUE, encoding="UTF-8")
+
+#=======================================================================
+# Rattle timestamp: 2022-10-29 21:38:39 x86_64-w64-mingw32 
+
+# Action the user selections from the Data tab. 
+
+# Build the train/validate/test datasets.
+
+# nobs=29332 train=20532 validate=4400 test=4400
+
+set.seed(crv$seed)
+
+crs$nobs <- nrow(crs$dataset)
+
+crs$train <- sample(crs$nobs, 0.7*crs$nobs)
+
+crs$nobs %>%
+  seq_len() %>%
+  setdiff(crs$train) %>%
+  sample(0.15*crs$nobs) ->
+crs$validate
+
+crs$nobs %>%
+  seq_len() %>%
+  setdiff(crs$train) %>%
+  setdiff(crs$validate) ->
+crs$test
+
+# The following variable selections have been noted.
+
+crs$input     <- c("android.permission.GET_ACCOUNTS",
+                   "com.sonyericsson.home.permission.BROADCAST_BADGE",
+                   "android.permission.READ_PROFILE",
+                   "android.permission.MANAGE_ACCOUNTS",
+                   "android.permission.WRITE_SYNC_SETTINGS",
+                   "android.permission.READ_EXTERNAL_STORAGE",
+                   "android.permission.RECEIVE_SMS",
+                   "com.android.launcher.permission.READ_SETTINGS",
+                   "android.permission.WRITE_SETTINGS",
+                   "com.google.android.providers.gsf.permission.READ_GSERVICES",
+                   "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
+                   "android.permission.GET_TASKS",
+                   "android.permission.WRITE_EXTERNAL_STORAGE",
+                   "android.permission.RECORD_AUDIO",
+                   "com.huawei.android.launcher.permission.CHANGE_BADGE",
+                   "com.oppo.launcher.permission.READ_SETTINGS",
+                   "android.permission.CHANGE_NETWORK_STATE",
+                   "com.android.launcher.permission.INSTALL_SHORTCUT",
+                   "android.permission.android.permission.READ_PHONE_STATE",
+                   "android.permission.CALL_PHONE",
+                   "android.permission.WRITE_CONTACTS",
+                   "android.permission.READ_PHONE_STATE",
+                   "com.samsung.android.providers.context.permission.WRITE_USE_APP_FEATURE_SURVEY",
+                   "android.permission.MODIFY_AUDIO_SETTINGS",
+                   "android.permission.ACCESS_LOCATION_EXTRA_COMMANDS",
+                   "android.permission.INTERNET",
+                   "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+                   "com.majeur.launcher.permission.UPDATE_BADGE",
+                   "android.permission.AUTHENTICATE_ACCOUNTS",
+                   "com.htc.launcher.permission.READ_SETTINGS",
+                   "android.permission.ACCESS_WIFI_STATE",
+                   "android.permission.FLASHLIGHT",
+                   "android.permission.READ_APP_BADGE",
+                   "android.permission.USE_CREDENTIALS",
+                   "android.permission.CHANGE_CONFIGURATION",
+                   "android.permission.READ_SYNC_SETTINGS",
+                   "android.permission.BROADCAST_STICKY",
+                   "com.anddoes.launcher.permission.UPDATE_COUNT",
+                   "com.android.alarm.permission.SET_ALARM",
+                   "com.google.android.c2dm.permission.RECEIVE",
+                   "android.permission.KILL_BACKGROUND_PROCESSES",
+                   "com.sonymobile.home.permission.PROVIDER_INSERT_BADGE",
+                   "com.sec.android.provider.badge.permission.READ",
+                   "android.permission.WRITE_CALENDAR",
+                   "android.permission.SEND_SMS",
+                   "com.huawei.android.launcher.permission.WRITE_SETTINGS",
+                   "android.permission.REQUEST_INSTALL_PACKAGES",
+                   "android.permission.SET_WALLPAPER_HINTS",
+                   "android.permission.SET_WALLPAPER",
+                   "com.oppo.launcher.permission.WRITE_SETTINGS",
+                   "android.permission.RESTART_PACKAGES",
+                   "me.everything.badger.permission.BADGE_COUNT_WRITE",
+                   "android.permission.ACCESS_MOCK_LOCATION",
+                   "android.permission.ACCESS_COARSE_LOCATION",
+                   "android.permission.READ_LOGS",
+                   "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
+                   "com.amazon.device.messaging.permission.RECEIVE",
+                   "android.permission.SYSTEM_ALERT_WINDOW",
+                   "android.permission.DISABLE_KEYGUARD",
+                   "android.permission.USE_FINGERPRINT",
+                   "me.everything.badger.permission.BADGE_COUNT_READ",
+                   "android.permission.CHANGE_WIFI_STATE",
+                   "android.permission.READ_CONTACTS",
+                   "com.android.vending.BILLING",
+                   "android.permission.READ_CALENDAR",
+                   "android.permission.RECEIVE_BOOT_COMPLETED",
+                   "android.permission.WAKE_LOCK",
+                   "android.permission.ACCESS_FINE_LOCATION",
+                   "android.permission.BLUETOOTH",
+                   "android.permission.CAMERA",
+                   "com.android.vending.CHECK_LICENSE",
+                   "android.permission.FOREGROUND_SERVICE",
+                   "android.permission.BLUETOOTH_ADMIN",
+                   "android.permission.VIBRATE",
+                   "android.permission.NFC",
+                   "android.permission.RECEIVE_USER_PRESENT",
+                   "android.permission.CLEAR_APP_CACHE",
+                   "com.android.launcher.permission.UNINSTALL_SHORTCUT",
+                   "com.sec.android.iap.permission.BILLING",
+                   "com.htc.launcher.permission.UPDATE_SHORTCUT",
+                   "com.sec.android.provider.badge.permission.WRITE",
+                   "android.permission.ACCESS_NETWORK_STATE",
+                   "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE",
+                   "com.huawei.android.launcher.permission.READ_SETTINGS",
+                   "android.permission.READ_SMS",
+                   "android.permission.PROCESS_INCOMING_CALLS")
+
+crs$numeric   <- c("android.permission.GET_ACCOUNTS",
+                   "com.sonyericsson.home.permission.BROADCAST_BADGE",
+                   "android.permission.READ_PROFILE",
+                   "android.permission.MANAGE_ACCOUNTS",
+                   "android.permission.WRITE_SYNC_SETTINGS",
+                   "android.permission.READ_EXTERNAL_STORAGE",
+                   "android.permission.RECEIVE_SMS",
+                   "com.android.launcher.permission.READ_SETTINGS",
+                   "android.permission.WRITE_SETTINGS",
+                   "com.google.android.providers.gsf.permission.READ_GSERVICES",
+                   "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
+                   "android.permission.GET_TASKS",
+                   "android.permission.WRITE_EXTERNAL_STORAGE",
+                   "android.permission.RECORD_AUDIO",
+                   "com.huawei.android.launcher.permission.CHANGE_BADGE",
+                   "com.oppo.launcher.permission.READ_SETTINGS",
+                   "android.permission.CHANGE_NETWORK_STATE",
+                   "com.android.launcher.permission.INSTALL_SHORTCUT",
+                   "android.permission.android.permission.READ_PHONE_STATE",
+                   "android.permission.CALL_PHONE",
+                   "android.permission.WRITE_CONTACTS",
+                   "android.permission.READ_PHONE_STATE",
+                   "com.samsung.android.providers.context.permission.WRITE_USE_APP_FEATURE_SURVEY",
+                   "android.permission.MODIFY_AUDIO_SETTINGS",
+                   "android.permission.ACCESS_LOCATION_EXTRA_COMMANDS",
+                   "android.permission.INTERNET",
+                   "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+                   "com.majeur.launcher.permission.UPDATE_BADGE",
+                   "android.permission.AUTHENTICATE_ACCOUNTS",
+                   "com.htc.launcher.permission.READ_SETTINGS",
+                   "android.permission.ACCESS_WIFI_STATE",
+                   "android.permission.FLASHLIGHT",
+                   "android.permission.READ_APP_BADGE",
+                   "android.permission.USE_CREDENTIALS",
+                   "android.permission.CHANGE_CONFIGURATION",
+                   "android.permission.READ_SYNC_SETTINGS",
+                   "android.permission.BROADCAST_STICKY",
+                   "com.anddoes.launcher.permission.UPDATE_COUNT",
+                   "com.android.alarm.permission.SET_ALARM",
+                   "com.google.android.c2dm.permission.RECEIVE",
+                   "android.permission.KILL_BACKGROUND_PROCESSES",
+                   "com.sonymobile.home.permission.PROVIDER_INSERT_BADGE",
+                   "com.sec.android.provider.badge.permission.READ",
+                   "android.permission.WRITE_CALENDAR",
+                   "android.permission.SEND_SMS",
+                   "com.huawei.android.launcher.permission.WRITE_SETTINGS",
+                   "android.permission.REQUEST_INSTALL_PACKAGES",
+                   "android.permission.SET_WALLPAPER_HINTS",
+                   "android.permission.SET_WALLPAPER",
+                   "com.oppo.launcher.permission.WRITE_SETTINGS",
+                   "android.permission.RESTART_PACKAGES",
+                   "me.everything.badger.permission.BADGE_COUNT_WRITE",
+                   "android.permission.ACCESS_MOCK_LOCATION",
+                   "android.permission.ACCESS_COARSE_LOCATION",
+                   "android.permission.READ_LOGS",
+                   "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
+                   "com.amazon.device.messaging.permission.RECEIVE",
+                   "android.permission.SYSTEM_ALERT_WINDOW",
+                   "android.permission.DISABLE_KEYGUARD",
+                   "android.permission.USE_FINGERPRINT",
+                   "me.everything.badger.permission.BADGE_COUNT_READ",
+                   "android.permission.CHANGE_WIFI_STATE",
+                   "android.permission.READ_CONTACTS",
+                   "com.android.vending.BILLING",
+                   "android.permission.READ_CALENDAR",
+                   "android.permission.RECEIVE_BOOT_COMPLETED",
+                   "android.permission.WAKE_LOCK",
+                   "android.permission.ACCESS_FINE_LOCATION",
+                   "android.permission.BLUETOOTH",
+                   "android.permission.CAMERA",
+                   "com.android.vending.CHECK_LICENSE",
+                   "android.permission.FOREGROUND_SERVICE",
+                   "android.permission.BLUETOOTH_ADMIN",
+                   "android.permission.VIBRATE",
+                   "android.permission.NFC",
+                   "android.permission.RECEIVE_USER_PRESENT",
+                   "android.permission.CLEAR_APP_CACHE",
+                   "com.android.launcher.permission.UNINSTALL_SHORTCUT",
+                   "com.sec.android.iap.permission.BILLING",
+                   "com.htc.launcher.permission.UPDATE_SHORTCUT",
+                   "com.sec.android.provider.badge.permission.WRITE",
+                   "android.permission.ACCESS_NETWORK_STATE",
+                   "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE",
+                   "com.huawei.android.launcher.permission.READ_SETTINGS",
+                   "android.permission.READ_SMS",
+                   "android.permission.PROCESS_INCOMING_CALLS")
+
+crs$categoric <- NULL
+
+crs$target    <- "Result"
+crs$risk      <- NULL
+crs$ident     <- NULL
+crs$ignore    <- NULL
+crs$weights   <- NULL
+
+#=======================================================================
+# Rattle timestamp: 2022-10-29 21:38:52 x86_64-w64-mingw32 
+
+# Action the user selections from the Data tab. 
+
+# Build the train/validate/test datasets.
+
+# nobs=29332 train=20532 validate=4400 test=4400
+
+set.seed(crv$seed)
+
+crs$nobs <- nrow(crs$dataset)
+
+crs$train <- sample(crs$nobs, 0.7*crs$nobs)
+
+crs$nobs %>%
+  seq_len() %>%
+  setdiff(crs$train) %>%
+  sample(0.15*crs$nobs) ->
+crs$validate
+
+crs$nobs %>%
+  seq_len() %>%
+  setdiff(crs$train) %>%
+  setdiff(crs$validate) ->
+crs$test
+
+# The following variable selections have been noted.
+
+crs$input     <- c("android.permission.GET_ACCOUNTS",
+                   "com.sonyericsson.home.permission.BROADCAST_BADGE",
+                   "android.permission.READ_PROFILE",
+                   "android.permission.MANAGE_ACCOUNTS",
+                   "android.permission.WRITE_SYNC_SETTINGS",
+                   "android.permission.READ_EXTERNAL_STORAGE",
+                   "android.permission.RECEIVE_SMS",
+                   "com.android.launcher.permission.READ_SETTINGS",
+                   "android.permission.WRITE_SETTINGS",
+                   "com.google.android.providers.gsf.permission.READ_GSERVICES",
+                   "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
+                   "android.permission.GET_TASKS",
+                   "android.permission.WRITE_EXTERNAL_STORAGE",
+                   "android.permission.RECORD_AUDIO",
+                   "com.huawei.android.launcher.permission.CHANGE_BADGE",
+                   "com.oppo.launcher.permission.READ_SETTINGS",
+                   "android.permission.CHANGE_NETWORK_STATE",
+                   "com.android.launcher.permission.INSTALL_SHORTCUT",
+                   "android.permission.android.permission.READ_PHONE_STATE",
+                   "android.permission.CALL_PHONE",
+                   "android.permission.WRITE_CONTACTS",
+                   "android.permission.READ_PHONE_STATE",
+                   "com.samsung.android.providers.context.permission.WRITE_USE_APP_FEATURE_SURVEY",
+                   "android.permission.MODIFY_AUDIO_SETTINGS",
+                   "android.permission.ACCESS_LOCATION_EXTRA_COMMANDS",
+                   "android.permission.INTERNET",
+                   "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+                   "com.majeur.launcher.permission.UPDATE_BADGE",
+                   "android.permission.AUTHENTICATE_ACCOUNTS",
+                   "com.htc.launcher.permission.READ_SETTINGS",
+                   "android.permission.ACCESS_WIFI_STATE",
+                   "android.permission.FLASHLIGHT",
+                   "android.permission.READ_APP_BADGE",
+                   "android.permission.USE_CREDENTIALS",
+                   "android.permission.CHANGE_CONFIGURATION",
+                   "android.permission.READ_SYNC_SETTINGS",
+                   "android.permission.BROADCAST_STICKY",
+                   "com.anddoes.launcher.permission.UPDATE_COUNT",
+                   "com.android.alarm.permission.SET_ALARM",
+                   "com.google.android.c2dm.permission.RECEIVE",
+                   "android.permission.KILL_BACKGROUND_PROCESSES",
+                   "com.sonymobile.home.permission.PROVIDER_INSERT_BADGE",
+                   "com.sec.android.provider.badge.permission.READ",
+                   "android.permission.WRITE_CALENDAR",
+                   "android.permission.SEND_SMS",
+                   "com.huawei.android.launcher.permission.WRITE_SETTINGS",
+                   "android.permission.REQUEST_INSTALL_PACKAGES",
+                   "android.permission.SET_WALLPAPER_HINTS",
+                   "android.permission.SET_WALLPAPER",
+                   "com.oppo.launcher.permission.WRITE_SETTINGS",
+                   "android.permission.RESTART_PACKAGES",
+                   "me.everything.badger.permission.BADGE_COUNT_WRITE",
+                   "android.permission.ACCESS_MOCK_LOCATION",
+                   "android.permission.ACCESS_COARSE_LOCATION",
+                   "android.permission.READ_LOGS",
+                   "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
+                   "com.amazon.device.messaging.permission.RECEIVE",
+                   "android.permission.SYSTEM_ALERT_WINDOW",
+                   "android.permission.DISABLE_KEYGUARD",
+                   "android.permission.USE_FINGERPRINT",
+                   "me.everything.badger.permission.BADGE_COUNT_READ",
+                   "android.permission.CHANGE_WIFI_STATE",
+                   "android.permission.READ_CONTACTS",
+                   "com.android.vending.BILLING",
+                   "android.permission.READ_CALENDAR",
+                   "android.permission.RECEIVE_BOOT_COMPLETED",
+                   "android.permission.WAKE_LOCK",
+                   "android.permission.ACCESS_FINE_LOCATION",
+                   "android.permission.BLUETOOTH",
+                   "android.permission.CAMERA",
+                   "com.android.vending.CHECK_LICENSE",
+                   "android.permission.FOREGROUND_SERVICE",
+                   "android.permission.BLUETOOTH_ADMIN",
+                   "android.permission.VIBRATE",
+                   "android.permission.NFC",
+                   "android.permission.RECEIVE_USER_PRESENT",
+                   "android.permission.CLEAR_APP_CACHE",
+                   "com.android.launcher.permission.UNINSTALL_SHORTCUT",
+                   "com.sec.android.iap.permission.BILLING",
+                   "com.htc.launcher.permission.UPDATE_SHORTCUT",
+                   "com.sec.android.provider.badge.permission.WRITE",
+                   "android.permission.ACCESS_NETWORK_STATE",
+                   "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE",
+                   "com.huawei.android.launcher.permission.READ_SETTINGS",
+                   "android.permission.READ_SMS",
+                   "android.permission.PROCESS_INCOMING_CALLS")
+
+crs$numeric   <- c("android.permission.GET_ACCOUNTS",
+                   "com.sonyericsson.home.permission.BROADCAST_BADGE",
+                   "android.permission.READ_PROFILE",
+                   "android.permission.MANAGE_ACCOUNTS",
+                   "android.permission.WRITE_SYNC_SETTINGS",
+                   "android.permission.READ_EXTERNAL_STORAGE",
+                   "android.permission.RECEIVE_SMS",
+                   "com.android.launcher.permission.READ_SETTINGS",
+                   "android.permission.WRITE_SETTINGS",
+                   "com.google.android.providers.gsf.permission.READ_GSERVICES",
+                   "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
+                   "android.permission.GET_TASKS",
+                   "android.permission.WRITE_EXTERNAL_STORAGE",
+                   "android.permission.RECORD_AUDIO",
+                   "com.huawei.android.launcher.permission.CHANGE_BADGE",
+                   "com.oppo.launcher.permission.READ_SETTINGS",
+                   "android.permission.CHANGE_NETWORK_STATE",
+                   "com.android.launcher.permission.INSTALL_SHORTCUT",
+                   "android.permission.android.permission.READ_PHONE_STATE",
+                   "android.permission.CALL_PHONE",
+                   "android.permission.WRITE_CONTACTS",
+                   "android.permission.READ_PHONE_STATE",
+                   "com.samsung.android.providers.context.permission.WRITE_USE_APP_FEATURE_SURVEY",
+                   "android.permission.MODIFY_AUDIO_SETTINGS",
+                   "android.permission.ACCESS_LOCATION_EXTRA_COMMANDS",
+                   "android.permission.INTERNET",
+                   "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+                   "com.majeur.launcher.permission.UPDATE_BADGE",
+                   "android.permission.AUTHENTICATE_ACCOUNTS",
+                   "com.htc.launcher.permission.READ_SETTINGS",
+                   "android.permission.ACCESS_WIFI_STATE",
+                   "android.permission.FLASHLIGHT",
+                   "android.permission.READ_APP_BADGE",
+                   "android.permission.USE_CREDENTIALS",
+                   "android.permission.CHANGE_CONFIGURATION",
+                   "android.permission.READ_SYNC_SETTINGS",
+                   "android.permission.BROADCAST_STICKY",
+                   "com.anddoes.launcher.permission.UPDATE_COUNT",
+                   "com.android.alarm.permission.SET_ALARM",
+                   "com.google.android.c2dm.permission.RECEIVE",
+                   "android.permission.KILL_BACKGROUND_PROCESSES",
+                   "com.sonymobile.home.permission.PROVIDER_INSERT_BADGE",
+                   "com.sec.android.provider.badge.permission.READ",
+                   "android.permission.WRITE_CALENDAR",
+                   "android.permission.SEND_SMS",
+                   "com.huawei.android.launcher.permission.WRITE_SETTINGS",
+                   "android.permission.REQUEST_INSTALL_PACKAGES",
+                   "android.permission.SET_WALLPAPER_HINTS",
+                   "android.permission.SET_WALLPAPER",
+                   "com.oppo.launcher.permission.WRITE_SETTINGS",
+                   "android.permission.RESTART_PACKAGES",
+                   "me.everything.badger.permission.BADGE_COUNT_WRITE",
+                   "android.permission.ACCESS_MOCK_LOCATION",
+                   "android.permission.ACCESS_COARSE_LOCATION",
+                   "android.permission.READ_LOGS",
+                   "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
+                   "com.amazon.device.messaging.permission.RECEIVE",
+                   "android.permission.SYSTEM_ALERT_WINDOW",
+                   "android.permission.DISABLE_KEYGUARD",
+                   "android.permission.USE_FINGERPRINT",
+                   "me.everything.badger.permission.BADGE_COUNT_READ",
+                   "android.permission.CHANGE_WIFI_STATE",
+                   "android.permission.READ_CONTACTS",
+                   "com.android.vending.BILLING",
+                   "android.permission.READ_CALENDAR",
+                   "android.permission.RECEIVE_BOOT_COMPLETED",
+                   "android.permission.WAKE_LOCK",
+                   "android.permission.ACCESS_FINE_LOCATION",
+                   "android.permission.BLUETOOTH",
+                   "android.permission.CAMERA",
+                   "com.android.vending.CHECK_LICENSE",
+                   "android.permission.FOREGROUND_SERVICE",
+                   "android.permission.BLUETOOTH_ADMIN",
+                   "android.permission.VIBRATE",
+                   "android.permission.NFC",
+                   "android.permission.RECEIVE_USER_PRESENT",
+                   "android.permission.CLEAR_APP_CACHE",
+                   "com.android.launcher.permission.UNINSTALL_SHORTCUT",
+                   "com.sec.android.iap.permission.BILLING",
+                   "com.htc.launcher.permission.UPDATE_SHORTCUT",
+                   "com.sec.android.provider.badge.permission.WRITE",
+                   "android.permission.ACCESS_NETWORK_STATE",
+                   "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE",
+                   "com.huawei.android.launcher.permission.READ_SETTINGS",
+                   "android.permission.READ_SMS",
+                   "android.permission.PROCESS_INCOMING_CALLS")
+
+crs$categoric <- NULL
+
+crs$target    <- "Result"
+crs$risk      <- NULL
+crs$ident     <- NULL
+crs$ignore    <- NULL
+crs$weights   <- NULL
+
+#=======================================================================
+# Rattle timestamp: 2022-10-29 21:39:05 x86_64-w64-mingw32 
+
+# BiCluster 
+
+# The 'biclust' package provides the 'biclust' function.
+
+library(biclust, quietly=TRUE)
+
+#=======================================================================
+# Rattle timestamp: 2022-10-29 21:39:53 x86_64-w64-mingw32 
+
+# KMeans 
+
+# Reset the random number seed to obtain the same results each time.
+
+set.seed(crv$seed)
+
+# The 'reshape' package provides the 'rescaler' function.
+
+library(reshape, quietly=TRUE)
+
+# The 'fpc' package provides the 'kmeansruns' function.
+
+library(fpc, quietly=TRUE)
+
+# Generate a kmeans cluster of size 10 choosing the best from 3.
+
+crs$kmeans <- kmeansruns(sapply(na.omit(crs$dataset[crs$train, crs$numeric]), rescaler, "range"), 10, runs=3)
+
+#=======================================================================
+# Rattle timestamp: 2022-10-29 21:40:08 x86_64-w64-mingw32 
+
+# Report on the cluster characteristics. 
+
+# Cluster sizes:
+
+paste(crs$kmeans$size, collapse=' ')
+
+# Data means:
+
+colMeans(sapply(na.omit(crs$dataset[crs$train, crs$numeric]), rescaler, "range"))
+
+# Cluster centers:
+
+crs$kmeans$centers
+
+# Within cluster sum of squares:
+
+crs$kmeans$withinss
+
+# Time taken: 1.05 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-29 21:40:17 x86_64-w64-mingw32 
+
+# Display a scatterplot matrix for the KMeans clustering. 
+
+# Generate a discriminant coordinates plot.
+
+cluster::clusplot(na.omit(crs$dataset[crs$train, intersect(crs$input, crs$numeric)]), crs$kmeans$cluster, color=TRUE, shade=TRUE, main='Discriminant Coordinates NATICUSdroid_android_permissions.csv')
+
+
+#=======================================================================
+# Rattle timestamp: 2022-10-29 21:40:42 x86_64-w64-mingw32 
+
+# Display a scatterplot matrix for the KMeans clustering. 
+
+# Select a sample from the dataset to calculate the statistics.
+
+set.seed(42)
+smpl <- sample(length(crs$kmeans$cluster), 4000)
+
+# Keep just the first 5 variables for the plot.
+
+vars <- 1:5
+
+# Generate a data plot.
+
+plot(na.omit(crs$dataset[crs$train, intersect(crs$input, crs$numeric)][smpl, vars]), col=crs$kmeans$cluster)
+title(main="",
+    sub=paste("Rattle", format(Sys.time(), "%Y-%b-%d %H:%M:%S"), Sys.info()["user"]))
+
+# Generate a discriminant coordinates plot.
+
+cluster::clusplot(na.omit(crs$dataset[crs$train, intersect(crs$input, crs$numeric)]), crs$kmeans$cluster, color=TRUE, shade=TRUE, main='Discriminant Coordinates NATICUSdroid_android_permissions.csv')
+
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 09:48:30 x86_64-w64-mingw32 
+
+# Display a scatterplot matrix for the KMeans clustering. 
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 09:49:21 x86_64-w64-mingw32 
+
+# Build a Random Forest model using the traditional approach.
+
+set.seed(crv$seed)
+
+crs$rf <- randomForest::randomForest(as.factor(Result) ~ .,
+  data=crs$dataset[crs$train, c(crs$input, crs$target)], 
+  ntree=500,
+  mtry=9,
+  importance=TRUE,
+  na.action=randomForest::na.roughfix,
+  replace=FALSE)
+
+# Generate textual output of the 'Random Forest' model.
+
+crs$rf
+
+# The `pROC' package implements various AUC functions.
+
+# Calculate the Area Under the Curve (AUC).
+
+pROC::roc(crs$rf$y, as.numeric(crs$rf$predicted))
+
+# Calculate the AUC Confidence Interval.
+
+pROC::ci.auc(crs$rf$y, as.numeric(crs$rf$predicted))FALSE
+
+# List the importance of the variables.
+
+rn <- round(randomForest::importance(crs$rf), 2)
+rn[order(rn[,3], decreasing=TRUE),]
+
+# Time taken: 14.36 mins
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:05:03 x86_64-w64-mingw32 
+
+# Extreme Boost 
+
+# The `xgboost' package implements the extreme gradient boost algorithm.
+
+# Build the Extreme Boost model.
+
+set.seed(crv$seed)
+
+crs$ada <- xgboost(Result ~ .,
+  data              = crs$dataset[crs$train,c(crs$input, crs$target)],
+  max_depth         = 6,
+  eta               = 0.3, 
+  num_parallel_tree = 1, 
+  nthread           = 2, 
+  nround            = 50,
+  metrics           = 'error',
+  objective         = 'binary:logistic')
+
+# Print the results of the modelling.
+
+print(crs$ada)
+
+cat('\nFinal iteration error rate:\n')
+print(round(crs$ada$evaluation_log[crs$ada$niter, ], 2))
+
+cat('\nImportance/Frequency of variables actually used:\n')
+print(crs$imp <- importance(crs$ada, crs$dataset[crs$train,c(crs$input, crs$target)]))
+
+# Time taken: 1.27 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:05:51 x86_64-w64-mingw32 
+
+# Support vector machine. 
+
+# The 'kernlab' package provides the 'ksvm' function.
+
+library(kernlab, quietly=TRUE)
+
+# Build a Support Vector Machine model.
+
+set.seed(crv$seed)
+crs$ksvm <- ksvm(as.factor(Result) ~ .,
+      data=crs$dataset[crs$train,c(crs$input, crs$target)],
+      kernel="tanhdot",
+      prob.model=TRUE)
+
+# Generate a textual view of the SVM model.
+
+crs$ksvm
+
+# Time taken: 1.81 mins
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:21:05 x86_64-w64-mingw32 
+
+# Score the training dataset. 
+
+# Obtain probability scores for the Extreme Boost model on NATICUSdroid_android_permissions.csv [**train**].
+
+lvls <- levels(as.factor(crs$dataset[[crs$target]]))
+crs$pr <- factor(ifelse(predict(crs$ada, crs$dataset[crs$train, c(crs$input, crs$target)]) > 0.5,
+			lvls[2], lvls[1]))
+
+# Obtain probability scores for the Random Forest model on NATICUSdroid_android_permissions.csv [**train**].
+
+crs$pr <- predict(crs$rf, newdata=na.omit(crs$dataset[crs$train, c(crs$input)]))
+
+# Obtain probability scores for the SVM model on NATICUSdroid_android_permissions.csv [**train**].
+
+crs$pr <- kernlab::predict(crs$ksvm, newdata=na.omit(crs$dataset[crs$train, c(crs$input)]))
+
+# Obtain cluster number for the KMeans model on NATICUSdroid_android_permissions.csv [**train**].
+
+crs$pr <- predict(crs$kmeans, crs$dataset[crs$train, c(crs$input)])
+
+# Extract the relevant variables from the dataset.
+
+sdata <- subset(crs$dataset[crs$train,], select=c("Result"))
+
+# Output the combined data.
+
+write.csv(cbind(sdata, crs$pr), file="C:\Users\mathe\OneDrive\Documents\R\NATICUSdroid_android_permissions_train_score_idents.csv", row.names=FALSE)
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:38:04 x86_64-w64-mingw32 
+
+# Decision Tree 
+
+# The 'rpart' package provides the 'rpart' function.
+
+library(rpart, quietly=TRUE)
+
+# Reset the random number seed to obtain the same results each time.
+
+set.seed(crv$seed)
+
+# Build the Decision Tree model.
+
+crs$rpart <- rpart(Result ~ .,
+    data=crs$dataset[crs$train, c(crs$input, crs$target)],
+    method="class",
+    parms=list(split="information"),
+      control=rpart.control(maxdepth=2,
+        usesurrogate=0, 
+        maxsurrogate=0),
+    model=TRUE)
+
+# Generate a textual view of the Decision Tree model.
+
+print(crs$rpart)
+printcp(crs$rpart)
+cat("\n")
+
+# Time taken: 0.44 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:38:12 x86_64-w64-mingw32 
+
+# Plot the resulting Decision Tree. 
+
+# We use the rpart.plot package.
+
+fancyRpartPlot(crs$rpart, main="Decision Tree NATICUSdroid_android_permissions.csv $ Result")
+
+# List the rules from the tree using a Rattle support function.
+
+asRules(crs$rpart)
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:39:47 x86_64-w64-mingw32 
+
+# Decision Tree 
+
+# The 'rpart' package provides the 'rpart' function.
+
+library(rpart, quietly=TRUE)
+
+# Reset the random number seed to obtain the same results each time.
+
+set.seed(crv$seed)
+
+# Build the Decision Tree model.
+
+crs$rpart <- rpart(Result ~ .,
+    data=crs$dataset[crs$train, c(crs$input, crs$target)],
+    method="class",
+    parms=list(split="information"),
+      control=rpart.control(maxdepth=2,
+           cp=0.028600,
+        usesurrogate=0, 
+        maxsurrogate=0),
+    model=TRUE)
+
+# Generate a textual view of the Decision Tree model.
+
+print(crs$rpart)
+printcp(crs$rpart)
+cat("\n")
+
+# Time taken: 0.45 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:39:50 x86_64-w64-mingw32 
+
+# Plot the resulting Decision Tree. 
+
+# We use the rpart.plot package.
+
+fancyRpartPlot(crs$rpart, main="Decision Tree NATICUSdroid_android_permissions.csv $ Result")
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:40:05 x86_64-w64-mingw32 
+
+# Decision Tree 
+
+# The 'rpart' package provides the 'rpart' function.
+
+library(rpart, quietly=TRUE)
+
+# Reset the random number seed to obtain the same results each time.
+
+set.seed(crv$seed)
+
+# Build the Decision Tree model.
+
+crs$rpart <- rpart(Result ~ .,
+    data=crs$dataset[crs$train, c(crs$input, crs$target)],
+    method="class",
+    parms=list(split="information"),
+      control=rpart.control(cp=0.028600,
+        usesurrogate=0, 
+        maxsurrogate=0),
+    model=TRUE)
+
+# Generate a textual view of the Decision Tree model.
+
+print(crs$rpart)
+printcp(crs$rpart)
+cat("\n")
+
+# Time taken: 0.64 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:40:07 x86_64-w64-mingw32 
+
+# Plot the resulting Decision Tree. 
+
+# We use the rpart.plot package.
+
+fancyRpartPlot(crs$rpart, main="Decision Tree NATICUSdroid_android_permissions.csv $ Result")
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:40:32 x86_64-w64-mingw32 
+
+# Conditional inference tree. 
+
+# Build a conditional tree using the party package.
+
+library(party, quietly=TRUE)
+
+# Build a ctree model.
+
+crs$rpart <- ctree(Result ~ ., data=crs$dataset[crs$train,c(crs$input, crs$target)])
+
+# Generate summary of the ctree model.
+
+print(crs$rpart)
+
+# Time taken: 1.08 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:40:43 x86_64-w64-mingw32 
+
+# Plot the resulting Decision Tree. 
+
+# We use the party package.
+
+plot(crs$rpart)
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:41:01 x86_64-w64-mingw32 
+
+# Conditional inference tree. 
+
+# Build a conditional tree using the party package.
+
+library(party, quietly=TRUE)
+
+# Build a ctree model.
+
+crs$rpart <- ctree(Result ~ ., data=crs$dataset[crs$train,c(crs$input, crs$target)], control=ctree_control(minsplit=2))
+
+# Generate summary of the ctree model.
+
+print(crs$rpart)
+
+# Time taken: 0.95 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:41:04 x86_64-w64-mingw32 
+
+# Plot the resulting Decision Tree. 
+
+# We use the party package.
+
+plot(crs$rpart)
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:41:13 x86_64-w64-mingw32 
+
+# Decision Tree 
+
+# The 'rpart' package provides the 'rpart' function.
+
+library(rpart, quietly=TRUE)
+
+# Reset the random number seed to obtain the same results each time.
+
+set.seed(crv$seed)
+
+# Build the Decision Tree model.
+
+crs$rpart <- rpart(Result ~ .,
+    data=crs$dataset[crs$train, c(crs$input, crs$target)],
+    method="class",
+    parms=list(split="information"),
+      control=rpart.control(minsplit=2,
+           cp=0.028600,
+        usesurrogate=0, 
+        maxsurrogate=0),
+    model=TRUE)
+
+# Generate a textual view of the Decision Tree model.
+
+print(crs$rpart)
+printcp(crs$rpart)
+cat("\n")
+
+# Time taken: 0.69 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:41:15 x86_64-w64-mingw32 
+
+# Plot the resulting Decision Tree. 
+
+# We use the rpart.plot package.
+
+fancyRpartPlot(crs$rpart, main="Decision Tree NATICUSdroid_android_permissions.csv $ Result")
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:41:34 x86_64-w64-mingw32 
+
+# Decision Tree 
+
+# The 'rpart' package provides the 'rpart' function.
+
+library(rpart, quietly=TRUE)
+
+# Reset the random number seed to obtain the same results each time.
+
+set.seed(crv$seed)
+
+# Build the Decision Tree model.
+
+crs$rpart <- rpart(Result ~ .,
+    data=crs$dataset[crs$train, c(crs$input, crs$target)],
+    method="class",
+    parms=list(split="information"),
+      control=rpart.control(maxdepth=5,
+           cp=0.028600,
+        usesurrogate=0, 
+        maxsurrogate=0),
+    model=TRUE)
+
+# Generate a textual view of the Decision Tree model.
+
+print(crs$rpart)
+printcp(crs$rpart)
+cat("\n")
+
+# Time taken: 0.79 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 10:41:36 x86_64-w64-mingw32 
+
+# Plot the resulting Decision Tree. 
+
+# We use the rpart.plot package.
+
+fancyRpartPlot(crs$rpart, main="Decision Tree NATICUSdroid_android_permissions.csv $ Result")
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 11:09:44 x86_64-w64-mingw32 
+
+# Decision Tree 
+
+# The 'rpart' package provides the 'rpart' function.
+
+library(rpart, quietly=TRUE)
+
+# Reset the random number seed to obtain the same results each time.
+
+set.seed(crv$seed)
+
+# Build the Decision Tree model.
+
+crs$rpart <- rpart(Result ~ .,
+    data=crs$dataset[crs$train, c(crs$input, crs$target)],
+    method="class",
+    parms=list(split="information"),
+      control=rpart.control(maxdepth=5,
+           cp=1.000000,
+        usesurrogate=0, 
+        maxsurrogate=0),
+    model=TRUE)
+
+# Generate a textual view of the Decision Tree model.
+
+print(crs$rpart)
+printcp(crs$rpart)
+cat("\n")
+
+# Time taken: 0.06 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 11:10:16 x86_64-w64-mingw32 
+
+# Decision Tree 
+
+# The 'rpart' package provides the 'rpart' function.
+
+library(rpart, quietly=TRUE)
+
+# Reset the random number seed to obtain the same results each time.
+
+set.seed(crv$seed)
+
+# Build the Decision Tree model.
+
+crs$rpart <- rpart(Result ~ .,
+    data=crs$dataset[crs$train, c(crs$input, crs$target)],
+    method="class",
+    parms=list(split="information"),
+      control=rpart.control(maxdepth=5,
+           cp=0.000100,
+        usesurrogate=0, 
+        maxsurrogate=0),
+    model=TRUE)
+
+# Generate a textual view of the Decision Tree model.
+
+print(crs$rpart)
+printcp(crs$rpart)
+cat("\n")
+
+# Time taken: 1.04 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 11:10:20 x86_64-w64-mingw32 
+
+# Plot the resulting Decision Tree. 
+
+# We use the rpart.plot package.
+
+fancyRpartPlot(crs$rpart, main="Decision Tree NATICUSdroid_android_permissions.csv $ Result")
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 12:13:48 x86_64-w64-mingw32 
+
+# Extreme Boost 
+
+# The `xgboost' package implements the extreme gradient boost algorithm.
+
+# Build the Extreme Boost model.
+
+set.seed(crv$seed)
+
+crs$ada <- xgboost(Result ~ .,
+  data              = crs$dataset[crs$train,c(crs$input, crs$target)],
+  max_depth         = 6,
+  eta               = 0.3, 
+  num_parallel_tree = 1, 
+  nthread           = 2, 
+  nround            = 50,
+  metrics           = 'error',
+  objective         = 'binary:logistic')
+
+# Print the results of the modelling.
+
+print(crs$ada)
+
+cat('\nFinal iteration error rate:\n')
+print(round(crs$ada$evaluation_log[crs$ada$niter, ], 2))
+
+cat('\nImportance/Frequency of variables actually used:\n')
+print(crs$imp <- importance(crs$ada, crs$dataset[crs$train,c(crs$input, crs$target)]))
+
+# Time taken: 0.59 secs
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 12:14:21 x86_64-w64-mingw32 
+
+# Score the validation dataset. 
+
+# Obtain probability scores for the Extreme Boost model on NATICUSdroid_android_permissions.csv [validate].
+
+lvls <- levels(as.factor(crs$dataset[[crs$target]]))
+crs$pr <- factor(ifelse(predict(crs$ada, crs$dataset[crs$validate, c(crs$input, crs$target)]) > 0.5,
+			lvls[2], lvls[1]))
+
+# Obtain cluster number for the KMeans model on NATICUSdroid_android_permissions.csv [validate].
+
+crs$pr <- predict(crs$kmeans, crs$dataset[crs$validate, c(crs$input)])
+
+# Extract the relevant variables from the dataset.
+
+sdata <- subset(crs$dataset[crs$validate,], select=c("Result"))
+
+# Output the combined data.
+
+write.csv(cbind(sdata, crs$pr), file="C:\Users\mathe\OneDrive\Desktop\NATICUSdroid_android_permissions_validate_score_idents.csv", row.names=FALSE)
+
+#=======================================================================
+# Rattle timestamp: 2022-10-30 16:31:35 x86_64-w64-mingw32 
+
+# Regression model 
+
+# Build a Regression model.
+
+crs$glm <- glm(Result ~ .,
+    data=crs$dataset[crs$train, c(crs$input, crs$target)],
+    family=binomial(link="probit"))
+
+# Generate a textual view of the Linear model.
+
+print(summary(crs$glm))
+
+cat(sprintf("Log likelihood: %.3f (%d df)\n",
+            logLik(crs$glm)[1],
+            attr(logLik(crs$glm), "df")))
+
+cat(sprintf("Null/Residual deviance difference: %.3f (%d df)\n",
+            crs$glm$null.deviance-crs$glm$deviance,
+            crs$glm$df.null-crs$glm$df.residual))
+
+cat(sprintf("Chi-square p-value: %.8f\n",
+            dchisq(crs$glm$null.deviance-crs$glm$deviance,
+                   crs$glm$df.null-crs$glm$df.residual)))
+
+cat(sprintf("Pseudo R-Square (optimistic): %.8f\n",
+             cor(crs$glm$y, crs$glm$fitted.values)))
+
+cat('\n==== ANOVA ====\n\n')
+print(anova(crs$glm, test="Chisq"))
+cat("\n")
+
+# Time taken: 1.20 mins
+
+# Plot the model evaluation.
+
+ttl <- genPlotTitleCmd("Linear Model",crs$dataname,vector=TRUE)
+plot(crs$glm, main=ttl[1])
+
+# Plot the model evaluation.
+
+ttl <- genPlotTitleCmd("Linear Model",crs$dataname,vector=TRUE)
+plot(crs$glm, main=ttl[1])
